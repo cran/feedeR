@@ -6,11 +6,11 @@ clean.url <- function(url) {
 
 #' @importFrom lubridate parse_date_time
 parse.date <- function(date) {
-  FORMATS = c("a, d b Y H:M:S z", "Y-m-d H:M:S z", "d b Y H:M:S", "d b Y H:M:S z")
+  FORMATS = c("a, d b Y H:M:S z", "Y-m-d H:M:S z", "d b Y H:M:S", "d b Y H:M:S z", "a b d H:M:S z Y")
   #
   # Transform time zone codes.
   #
-  date = sub("GMT$", "+0000", date)
+  date = sub("\\b(UTC|GMT)\\b", "+0000", date)
   #
   # Strip out "T" between day and hour (as in "2016-07-23T06:16:08-07:00").
   #
@@ -23,6 +23,35 @@ parse.date <- function(date) {
   parsed = parse_date_time(date, orders = FORMATS, locale = "C")
   if (is.na(parsed)) stop("Unable to parse date.", call. = FALSE)
   parsed
+}
+
+# RDF -----------------------------------------------------------------------------------------------------------------
+
+#' Parse feeds encoded in RDF/XML.
+#' @param feed The URL of the feed.
+#' @references
+#' https://en.wikipedia.org/wiki/RDF/XML
+#' @examples
+#' \dontrun{
+#' parse.rdf(feed.read("http://feeds.feedburner.com/oatmealfeed"))
+#' }
+#' @import dplyr
+parse.rdf <- function(feed) {
+  feed <- xmlToList(feed$RDF)
+  #
+  list(
+    title = feed$channel$title,
+    link = feed$channel$link,
+    updated = parse.date(feed$channel$date),
+    items = bind_rows(lapply(feed[names(feed) == "item"], function(item) {
+      data.frame(
+        title = item$title,
+        date  = parse.date(item$date),
+        link  = item$link,
+        stringsAsFactors = FALSE
+      )
+    }))
+  )
 }
 
 # ATOM ----------------------------------------------------------------------------------------------------------------
@@ -40,7 +69,8 @@ parse.atom <- function(feed) {
     items = bind_rows(lapply(feed[names(feed) == "entry"], function(item) {
       data.frame(
         title = item$title,
-        date  = if(is.null(item$published)) NA else parse.date(item$published),
+        date  = if(!is.null(item$published)) parse.date(item$published) else
+          if(!is.null(item$updated)) parse.date(item$updated) else NA,
         link  = item$link,
         stringsAsFactors = FALSE
       )
@@ -78,12 +108,14 @@ parse.rss <- function(feed) {
 
 #' @import XML
 parse.xml <- function(xml) {
-  xmlTreeParse(xml)$doc$children
+  xmlTreeParse(xml, options = NOCDATA)$doc$children
 }
 
 feed.type <- function(feed) {
   if("rss" %in% names(feed)) {
     return("RSS")
+  } else if("RDF" %in% names(feed)) {
+    return("RDF")
   } else {
     return("Atom")
   }
@@ -91,14 +123,15 @@ feed.type <- function(feed) {
 
 #' @import RCurl
 #' @import dplyr
-feed.read <- function(url) {
-  url %>% clean.url %>% getURL %>% parse.xml
+feed.read <- function(url, encoding = integer()) {
+  url %>% clean.url %>% getURL(.encoding = encoding) %>% parse.xml
 }
 
-#' Extract RSS/Atom feed
+#' Extract data from feeds
 #' @description
 #' Read feed metadata and entries.
 #' @param url URL for the feed.
+#' @param encoding Explicitly identify the encoding of the content.
 #' @return A list containing the following elements:
 #'
 #' - title: Title of the original site.
@@ -108,12 +141,18 @@ feed.read <- function(url) {
 #' - updated: When the feed was last updated.
 #'
 #' - items: A data frame with records for each entry in the feed.
+#'
+#' - hash: A hash key constructed from the post link. This is intended for easy indexing.
 #' @examples
+#' \dontrun{
 #' feed.extract("https://feeds.feedburner.com/RBloggers")
 #' feed.extract("http://journal.r-project.org/rss.atom")
+#' feed.extract("http://www.valor.com.br/financas/mercados/rss", "ISO-8859-2")
+#' }
+#' @import digest
 #' @export
-feed.extract <- function(url) {
-  feed <-feed.read(url)
+feed.extract <- function(url, encoding = integer()) {
+  feed <- feed.read(url, encoding)
 
   # Decide on type of feed and parse appropriately.
   #
@@ -121,11 +160,15 @@ feed.extract <- function(url) {
   #
   if (type == "RSS") {
     feed <- parse.rss(feed)
+  } else if (type == "RDF") {
+    feed <- parse.rdf(feed)
   } else if (type == "Atom") {
     feed <- parse.atom(feed)
   } else {
     stop("Unknown feed type!", .call = FALSE)
   }
-
+  
+  feed$items$hash = as.character(sapply(feed$items$link, function(n) {digest(n, algo = "xxhash64")}))
+  
   feed
 }

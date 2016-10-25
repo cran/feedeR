@@ -1,9 +1,10 @@
-87eada2e64a75e3d32c925a1679b004a *DESCRIPTION
-62992d85e2f582f57717f7e988fb0ee1 *NAMESPACE
-e2f873fad62c16305000e2d350b74f86 *R/read.R
-496117c5a8292079a89f0f9163d24564 *README.md
-b61c4d3563957d117516ca8882d58ef8 *man/feed.extract.Rd
+80c30b47ef93b024a5af08a77e6286f5 *DESCRIPTION
+426eb51049e027831e1835ba2f9dfcae *NAMESPACE
+2c5e159bf6ad25eb02be1675d54ff920 *R/read.R
+c05097436b7d7b5842dc1330d61f8263 *README.md
+fe4118c9af3f87ee16efa20ddb498ac2 *man/feed.extract.Rd
+7efb25fea4b2d562a7f0ea0c4190070c *man/parse.rdf.Rd
 ace62f128cca5424eb9c15398e71a707 *tests/testthat.R
 6e0430c043e823166a34ad86099a1ce4 *tests/testthat/test_atom.R
 e57726ba0d88e8ca365ac02f69ff8988 *tests/testthat/test_rss.R
-cc2bc9fe10b3c82ae0edc82f77311307 *tests/testthat/test_util.R
+f107e2ef998d4f73e487affc612ff4c7 *tests/testthat/test_util.R
