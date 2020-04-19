@@ -21,10 +21,23 @@ document = '<?xml version="1.0" encoding="utf-8"?>
 </feed>'
 
 test_that("parse Atom feed", {
-  feed <<- parse.xml(document)
+  feed <<- feed_read(document)
   expect_is(feed, "list")
 })
 
 test_that("identify Atom feed", {
-  expect_equal(feed.type(feed), "Atom")
+  expect_equal(feed_type(feed), "Atom")
+})
+
+test_that("parse feed with origLink", {
+  expect_is(feed.extract("http://feeds.feedburner.com/GeekingWithGreg"), "list")
+})
+
+test_that("parse feed without origLink", {
+  expect_is(feed.extract("http://fastml.com/atom.xml"), "list")
+  expect_is(feed.extract("http://feeds.feedburner.com/FeaturedPosts-Dataviz?format=xml"), "list")
+})
+
+test_that("parse feed", {
+  expect_is(feed.extract("http://www.catastro.minhap.es/INSPIRE/buildings/ES.SDGC.bu.atom.xml"), "list")
 })

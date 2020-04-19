@@ -35,10 +35,14 @@ document = '<?xml version="1.0" encoding="windows-1252"?>
 </rss>'
 
 test_that("parse RSS feed", {
-  feed <<- parse.xml(document)
+  feed <<- feed_read(document)
   expect_is(feed, "list")
 })
 
 test_that("identify RSS feed", {
-  expect_equal(feed.type(feed), "RSS")
+  expect_equal(feed_type(feed), "RSS")
+})
+
+test_that("feed which requires valid User-Agent", {
+  expect_is(feed.extract("https://www.glassdoor.com/rss/reviews.rss?id=7745"), "list")
 })
